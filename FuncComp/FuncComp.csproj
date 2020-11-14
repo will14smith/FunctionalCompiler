@@ -6,4 +6,8 @@
         <Nullable>enable</Nullable>
     </PropertyGroup>
 
+    <ItemGroup>
+      <ProjectReference Include="..\FuncComp.Language\FuncComp.Language.csproj" />
+    </ItemGroup>
+
 </Project>

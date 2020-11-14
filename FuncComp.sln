@@ -2,6 +2,8 @@
 Microsoft Visual Studio Solution File, Format Version 12.00
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FuncComp", "FuncComp\FuncComp.csproj", "{1B15B16C-5870-4089-AF60-5A4BB3D7C38E}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FuncComp.Language", "FuncComp.Language\FuncComp.Language.csproj", "{7F6DB79A-B479-43E3-AAFB-9CF30EF200F2}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -12,5 +14,9 @@ Global
 		{1B15B16C-5870-4089-AF60-5A4BB3D7C38E}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{1B15B16C-5870-4089-AF60-5A4BB3D7C38E}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{1B15B16C-5870-4089-AF60-5A4BB3D7C38E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7F6DB79A-B479-43E3-AAFB-9CF30EF200F2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7F6DB79A-B479-43E3-AAFB-9CF30EF200F2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7F6DB79A-B479-43E3-AAFB-9CF30EF200F2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7F6DB79A-B479-43E3-AAFB-9CF30EF200F2}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
