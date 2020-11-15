@@ -20,9 +20,11 @@ namespace FuncComp.TemplateInstantiation
         {
             var (stack, usages1) = ShowStack(state.Stack);
             var (dump, usages2) = ShowDump(state.Dump);
-            var (heap, usages3) = ShowHeap(state.Heap);
 
-            var usages = usages1.Union(usages2).Union(usages3).ToHashSet();
+            var usages = usages1.Union(usages2).ToHashSet();
+            var (heap, usages3) = ShowHeap(state.Heap, usages);
+
+            usages = usages.Union(usages3).ToHashSet();
 
             var visibleHeap = Append(heap.Where(x => usages.Contains(x.Key)).Select(x => x.Value).ToArray());
 
@@ -110,13 +112,18 @@ namespace FuncComp.TemplateInstantiation
             return (result, usages);
         }
 
-        private static (IReadOnlyDictionary<int, PrettyPrinter.Node>, IEnumerable<int>) ShowHeap(ImmutableDictionary<int,TiNode> heap)
+        private static (IReadOnlyDictionary<int, PrettyPrinter.Node>, IEnumerable<int>) ShowHeap(ImmutableDictionary<int,TiNode> heap, IEnumerable<int> initialNodes)
         {
             var results = new Dictionary<int, PrettyPrinter.Node>();
-            var usages = new HashSet<int>();
+            var usages = new HashSet<int>(initialNodes);
 
-            foreach (var (addr, node) in heap)
+            var nodesToOutput = new Queue<int>(usages);
+
+            while(nodesToOutput.Count > 0)
             {
+                var addr = nodesToOutput.Dequeue();
+                var node = heap[addr];
+
                 var result = Str($"heap{addr}");
 
                 switch (node)
@@ -126,15 +133,15 @@ namespace FuncComp.TemplateInstantiation
                         result = Append(result, Str($"heap{addr} -> heap{application.Function};"), Newline());
                         result = Append(result, Str($"heap{addr} -> heap{application.Argument} [style=dashed];"));
 
-                        usages.Add(application.Function);
-                        usages.Add(application.Argument);
+                        if (usages.Add(application.Function)) nodesToOutput.Enqueue(application.Function);
+                        if (usages.Add(application.Argument)) nodesToOutput.Enqueue(application.Argument);
 
                         break;
                     case TiNode.Indirection indirection:
                         result = Append(result, Str($"[label=\"{addr}: Ind {indirection.Address}\"];"), Newline());
                         result = Append(result, Str($"heap{addr} -> heap{indirection.Address};"));
 
-                        usages.Add(indirection.Address);
+                        if (usages.Add(indirection.Address)) nodesToOutput.Enqueue(indirection.Address);
 
                         break;
                     case TiNode.Number number:
@@ -152,7 +159,7 @@ namespace FuncComp.TemplateInstantiation
                         for (var index = 0; index < data.Components.Count; index++)
                         {
                             var component = data.Components[index];
-                            usages.Add(component);
+                            if (usages.Add(component)) nodesToOutput.Enqueue(component);
 
                             if (index > 0)
                             {
