@@ -20,5 +20,7 @@ namespace FuncComp.Helpers
         public static Expression<T> ApM(Expression<T> function, params Expression<T>[] parameters) => parameters.Aggregate(function, (agg, node) => new Expression<T>.Application(agg, node));
         public static Expression<T> Let(Expression<T> body, params (T, Expression<T>)[] definitions) => new Expression<T>.Let(false, definitions, body);
         public static Expression<T> LetRec(Expression<T> body, params (T, Expression<T>)[] definitions) => new Expression<T>.Let(true, definitions, body);
+        public static Expression<T> Pack(int tag, int arity) => new Expression<T>.Constructor(tag, arity);
+
     }
 }

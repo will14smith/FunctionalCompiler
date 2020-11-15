@@ -18,7 +18,8 @@ namespace FuncComp
             // var progStr = "square x = x * x; main = square (square 3)";
 
             // var progStr = "main = (I 100) + (I 200)";
-            var progStr = "main = Pack{1,0}";
+            // var progStr = "main = Pack{2,2} 2 (Pack{2,2} 1 Pack{1,0})";
+            var progStr = "fac n = if (n == 0) 1 (n * fac (n - 1)); main = fac 10";
 
             var tokens = Lexer.lex(progStr);
             var prog = Parser.parse(tokens);
@@ -56,6 +57,10 @@ namespace FuncComp
                 var p = new Process {StartInfo = si};
                 p.Start();
                 p.WaitForExit();
+                if (p.ExitCode != 0)
+                {
+                    Console.WriteLine(graph);
+                }
 
                 i++;
             }

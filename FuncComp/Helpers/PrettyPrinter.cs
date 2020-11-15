@@ -50,6 +50,7 @@ namespace FuncComp.Helpers
         {
             public static Node Nil() => new Node.Nil();
             public static Node Str(string value) => Interleave(new Node.Newline(), value.Split("\n").Select(x => new Node.Str(x)));
+            public static Node Num(int value) => Str(value.ToString());
             public static Node Append(params Node[] nodes) => nodes.Aggregate((Node)new Node.Nil(), (agg, node) => agg is Node.Nil ? node : node is Node.Nil ? agg : new Node.Append(agg, node));
 
             public static Node Interleave(Node sep, IEnumerable<Node> nodes)

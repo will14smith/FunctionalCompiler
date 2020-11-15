@@ -3,19 +3,38 @@ using System.Collections.Immutable;
 using System.Linq;
 using FuncComp.Helpers;
 using FuncComp.Language;
+using static FuncComp.Helpers.LanguageFactory;
+using static FuncComp.Helpers.LanguageFactory<FuncComp.Language.Name>;
 
 namespace FuncComp.TemplateInstantiation
 {
     public class TiCompiler
     {
-        private readonly IEnumerable<SupercombinatorDefinition<Name>> _extraPrelude = Enumerable.Empty<SupercombinatorDefinition<Name>>();
+        private static readonly Expression<Name> False = Pack(1, 0);
+        private static readonly Expression<Name> True = Pack(2, 0);
+
+        private readonly IEnumerable<SupercombinatorDefinition<Name>> _extraPrelude = new []
+        {
+            ScDef(N("not"), new [] { N("x") }, ApM(Var("if"), Var("x"), False, True)),
+            ScDef(N("and"), new [] { N("x"), N("y") }, ApM(Var("if"), Var("x"), Var("y"), False)),
+            ScDef(N("or"), new [] { N("x"), N("y") }, ApM(Var("if"), Var("x"), True, Var("y"))),
+        };
         private readonly IReadOnlyDictionary<Name, PrimitiveType> _primitives = new Dictionary<Name, PrimitiveType>
         {
-            { new Name("negate"), PrimitiveType.Neg },
-            { new Name("+"), PrimitiveType.Add },
-            { new Name("-"), PrimitiveType.Sub },
-            { new Name("*"), PrimitiveType.Mul },
-            { new Name("/"), PrimitiveType.Div },
+            { new Name("negate"), new PrimitiveType.Neg() },
+            { new Name("+"), new PrimitiveType.Add() },
+            { new Name("-"), new PrimitiveType.Sub() },
+            { new Name("*"), new PrimitiveType.Mul() },
+            { new Name("/"), new PrimitiveType.Div() },
+
+            { new Name("if"), new PrimitiveType.If() },
+
+            { new Name(">"), new PrimitiveType.Greater() },
+            { new Name(">="), new PrimitiveType.GreaterEqual() },
+            { new Name("<"), new PrimitiveType.Less() },
+            { new Name("<="), new PrimitiveType.LessEqual() },
+            { new Name("=="), new PrimitiveType.Equal() },
+            { new Name("~="), new PrimitiveType.NotEqual() },
         };
 
         public TiState Compile(Program<Name> program)

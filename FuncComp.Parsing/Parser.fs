@@ -25,9 +25,12 @@ let private alternatives = oneOrMoreWithSep alternative (lit ";")
 let private definition = bind3 (fun name _ expr -> struct (name, expr)) var (lit "=") expression
 let private definitions = oneOrMoreWithSep definition (lit ";")
 
+let private packArgs = bind3 (fun tag _ args -> (tag, args)) num (lit ",") num
+
 let private atomicExpression : Parser<Expression<Name>> = choice [
         var |>> (fun n -> upcast Expression<Name>.Variable n)
         num |>> (fun n -> upcast Expression<Name>.Number n)
+        bind4 (fun _ _ (tag, args) _ -> upcast Expression<Name>.Constructor (tag, args)) (lit "Pack") (lit "{") packArgs (lit "}")
         // TODO Pack { num , num }
         bind3 (fun _ expr _ -> expr) (lit "(") expression (lit ")")
     ]

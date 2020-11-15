@@ -51,6 +51,7 @@ namespace FuncComp.TemplateInstantiation
                 TiNode.Supercombinator supercombinator => Str($"Supercombinator {supercombinator.Name}"),
                 TiNode.Indirection indirection => Str($"Ind {indirection.Address}"),
                 TiNode.Primitive primitive => Str($"Prim {primitive.Name} {primitive.Type}"),
+                TiNode.Data data => Append(Str($"Data {data.Tag} ["), Interleave(Str(", "), data.Components.Select(Num)), Str("]")),
 
                 _ => throw new ArgumentOutOfRangeException(nameof(node))
             };

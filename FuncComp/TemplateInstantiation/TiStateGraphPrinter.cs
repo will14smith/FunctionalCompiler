@@ -124,7 +124,7 @@ namespace FuncComp.TemplateInstantiation
                     case TiNode.Application application:
                         result = Append(result, Str($"[label=\"{addr}: Ap {application.Function} {application.Argument}\"];"), Newline());
                         result = Append(result, Str($"heap{addr} -> heap{application.Function};"), Newline());
-                        result = Append(result, Str($"heap{addr} -> heap{application.Argument} [style=dashed]"));
+                        result = Append(result, Str($"heap{addr} -> heap{application.Argument} [style=dashed];"));
 
                         usages.Add(application.Function);
                         usages.Add(application.Argument);
@@ -132,25 +132,50 @@ namespace FuncComp.TemplateInstantiation
                         break;
                     case TiNode.Indirection indirection:
                         result = Append(result, Str($"[label=\"{addr}: Ind {indirection.Address}\"];"), Newline());
-                        result = Append(result, Str($"heap{addr} -> heap{indirection.Address}"));
+                        result = Append(result, Str($"heap{addr} -> heap{indirection.Address};"));
 
                         usages.Add(indirection.Address);
 
                         break;
                     case TiNode.Number number:
-                        result = Append(result, Str($"[label=\"{addr}: Num {number.Value}\"]"));
+                        result = Append(result, Str($"[label=\"{addr}: Num {number.Value}\"];"));
                         break;
                     case TiNode.Primitive primitive:
-                        result = Append(result, Str($"[label=\"{addr}: Prim {primitive.Name}\"]"));
+                        result = Append(result, Str($"[label=\"{addr}: Prim {primitive.Name}\"];"));
                         break;
                     case TiNode.Supercombinator supercombinator:
-                        result = Append(result, Str($"[label=\"{addr}: Sc {supercombinator.Name}\"]"));
+                        result = Append(result, Str($"[label=\"{addr}: Sc {supercombinator.Name}\"];"));
                         break;
+
+                    case TiNode.Data data:
+                        result = Append(result, Str($"[label=\"{{{addr}: Data {data.Tag}|{{"));
+                        for (var index = 0; index < data.Components.Count; index++)
+                        {
+                            var component = data.Components[index];
+                            usages.Add(component);
+
+                            if (index > 0)
+                            {
+                                result = Append(result, Str("|"));
+                            }
+
+                            result = Append(result, Str($"<c{index}> {component}"));
+                        }
+
+                        result = Append(result, Str("}}\"];"), Newline());
+
+                        for (var index = 0; index < data.Components.Count; index++)
+                        {
+                            var component = data.Components[index];
+                            result = Append(result, Str($"heap{addr}:c{index} -> heap{component};"), Newline());
+                        }
+                        break;
+
                     default:
                         throw new ArgumentOutOfRangeException(nameof(node));
                 }
 
-                results.Add(addr, Append(result, Str(";"), Newline()));
+                results.Add(addr, Append(result, Newline()));
             }
 
             return (results, usages);
