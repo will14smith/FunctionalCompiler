@@ -8,6 +8,7 @@
 
     <ItemGroup>
       <ProjectReference Include="..\FuncComp.Language\FuncComp.Language.csproj" />
+      <ProjectReference Include="..\FuncComp.Parsing\FuncComp.Parsing.fsproj" />
     </ItemGroup>
 
 </Project>

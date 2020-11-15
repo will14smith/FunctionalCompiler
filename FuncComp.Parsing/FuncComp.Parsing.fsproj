@@ -1,0 +1,18 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>netstandard2.1</TargetFramework>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <Compile Include="Token.fs" />
+        <Compile Include="Lexer.fs" />
+        <Compile Include="Combinators.fs" />
+        <Compile Include="Parser.fs" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\FuncComp.Language\FuncComp.Language.csproj" />
+    </ItemGroup>
+
+</Project>
