@@ -51,8 +51,8 @@ namespace FuncComp.TemplateInstantiation
 
             var args = GetArgs(state.Heap, items.Skip(1));
             var argBindings = args.Zip(supercombinator.Parameters).ToDictionary(x => x.Second, x => x.First);
-            var env = state.Globals.AddRange(argBindings);
-            var (newHeap, resultAddr) = Instantiate(supercombinator.Body, state.Heap, env);
+            var env = state.Globals.SetItems(argBindings);
+            var (newHeap, resultAddr) = Instantiate(supercombinator.Body, state.Heap, env, null);
 
             newStack = newStack.Push(resultAddr);
 
@@ -64,39 +64,69 @@ namespace FuncComp.TemplateInstantiation
             return addrs.Select(addr => heap[addr]).Cast<TiNode.Application>().Select(node => node.Argument);
         }
 
-        private static (ImmutableDictionary<int, TiNode>, int) Instantiate(Expression<Name> expr, ImmutableDictionary<int, TiNode> heap, ImmutableDictionary<Name, int> env)
+        private static (ImmutableDictionary<int, TiNode>, int) Instantiate(Expression<Name> expr, ImmutableDictionary<int,TiNode> heap, ImmutableDictionary<Name,int> env, int? target)
         {
             switch (expr)
             {
                 case Expression<Name>.Number num:
-                    return Allocate(heap, new TiNode.Number(num.Value));
+                    return AssignOrAllocate(target, heap, new TiNode.Number(num.Value));
 
                 case Expression<Name>.Application ap:
-                    var (heap1, a1) = Instantiate(ap.Function, heap, env);
-                    var (heap2, a2) = Instantiate(ap.Parameter, heap1, env);
+                    var (heap1, a1) = Instantiate(ap.Function, heap, env, null);
+                    var (heap2, a2) = Instantiate(ap.Parameter, heap1, env, null);
 
-                    return Allocate(heap2, new TiNode.Application(a1, a2));
+                    return AssignOrAllocate(target, heap2, new TiNode.Application(a1, a2));
 
                 case Expression<Name>.Variable variable:
+                    if(target.HasValue) throw new NotImplementedException("TODO");
                     return (heap, env[variable.Name]);
 
                 case Expression<Name>.Let let when !let.IsRecursive:
+                {
                     var defns = new Dictionary<Name, int>();
                     foreach (var definition in let.Definitions)
                     {
-                        var (newHeap, addr) = Instantiate(definition.Item2, heap, env);
-                        defns.Add(definition.Item1, addr);
+                        var (newHeap, newAddr) = Instantiate(definition.Item2, heap, env, null);
+                        defns.Add(definition.Item1, newAddr);
                         heap = newHeap;
                     }
 
-                    var newEnv = env.AddRange(defns);
+                    var newEnv = env.SetItems(defns);
 
-                    return Instantiate(let.Body, heap, newEnv);
+                    return Instantiate(let.Body, heap, newEnv, null);
+                }
+
+                case Expression<Name>.Let let when let.IsRecursive:
+                {
+                    foreach (var (name, _) in let.Definitions)
+                    {
+                        var (newHeap, placeholder) = Allocate(heap, new TiNode.Number(0));
+                        heap = newHeap;
+                        env = env.SetItem(name, placeholder);
+                    }
+
+                    foreach (var (name, defExpr) in let.Definitions)
+                    {
+                        var targetAddr = env[name];
+                        (heap, _) = Instantiate(defExpr, heap, env, targetAddr);
+                    }
+
+                    return Instantiate(let.Body, heap, env, null);
+                }
 
                 default: throw new ArgumentOutOfRangeException(nameof(expr));
             }
         }
 
+        private static (ImmutableDictionary<int, TiNode>, int) AssignOrAllocate(int? addr, ImmutableDictionary<int, TiNode> heap, TiNode node)
+        {
+            return addr.HasValue ? (Assign(addr.Value, heap, node), addr.Value) : Allocate(heap, node);
+        }
+
+        private static ImmutableDictionary<int, TiNode> Assign(int addr, ImmutableDictionary<int,TiNode> heap, TiNode node)
+        {
+            return heap.SetItem(addr, node);
+        }
         private static (ImmutableDictionary<int, TiNode>, int) Allocate(ImmutableDictionary<int,TiNode> heap, TiNode node)
         {
             var addr = heap.Keys.Max() + 1;

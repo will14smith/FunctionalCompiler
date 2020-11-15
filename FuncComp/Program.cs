@@ -1,6 +1,7 @@
 ﻿using System;
-using FuncComp.Language;
+using System.Linq;
 using FuncComp.Parsing;
+using FuncComp.TemplateInstantiation;
 
 namespace FuncComp
 {
@@ -17,19 +18,17 @@ namespace FuncComp
             var tokens = Lexer.lex(progStr);
             var prog = Parser.parse(tokens);
 
-            Console.WriteLine(ProgramPrinter.Print(prog));
+            // template instantiation
+            {
+                var compiler = new TiCompiler();
+                var initialState = compiler.Compile(prog);
 
-            // // template instantiation
-            // {
-            //     var compiler = new TiCompiler();
-            //     var initialState = compiler.Compile(prog);
-            //
-            //     var evaluator = new TiEvaluator();
-            //     var states = evaluator.Evaluate(initialState).ToList();
-            //
-            //     var finalState = states.Last();
-            //     Console.WriteLine(TiStatePrinter.Print(finalState));
-            // }
+                var evaluator = new TiEvaluator();
+                var states = evaluator.Evaluate(initialState).ToList();
+
+                var finalState = states.Last();
+                Console.WriteLine(TiStatePrinter.Print(finalState));
+            }
         }
     }
 }
