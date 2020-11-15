@@ -40,5 +40,36 @@ namespace FuncComp.TemplateInstantiation
 
             public int Value { get; }
         }
+
+        public class Indirection : TiNode
+        {
+            public Indirection(int address)
+            {
+                Address = address;
+            }
+
+            public int Address { get; }
+        }
+
+        public class Primitive : TiNode
+        {
+            public Primitive(Name name, PrimitiveType type)
+            {
+                Name = name;
+                Type = type;
+            }
+
+            public Name Name { get; }
+            public PrimitiveType Type { get; }
+        }
+    }
+
+    public enum PrimitiveType
+    {
+        Neg,
+        Add,
+        Sub,
+        Mul,
+        Div,
     }
 }

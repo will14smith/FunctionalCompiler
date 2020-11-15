@@ -1,4 +1,7 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using FuncComp.Parsing;
 using FuncComp.TemplateInstantiation;
@@ -13,7 +16,9 @@ namespace FuncComp
 
             // var progStr = ProgramPrinter.Print(prog);
             // var progStr = "square x = x * x; main = square (square 3)";
-            var progStr = "pair x y f = f x y; fst p = p K; snd p = p K1; f x y = letrec a = pair x b; b = pair y a in fst (snd (snd (snd a))); main = f 3 4";
+
+            // var progStr = "main = (I 100) + (I 200)";
+            var progStr = "main = Pack{1,0}";
 
             var tokens = Lexer.lex(progStr);
             var prog = Parser.parse(tokens);
@@ -26,9 +31,36 @@ namespace FuncComp
                 var evaluator = new TiEvaluator();
                 var states = evaluator.Evaluate(initialState).ToList();
 
+                Console.WriteLine($"Took {states.Count} states and {states.Last().Heap.Count} heap entries");
                 var finalState = states.Last();
                 Console.WriteLine(TiStatePrinter.Print(finalState));
+
+                DrawAllStates(states);
             }
+        }
+
+        private static void DrawAllStates(IEnumerable<TiState> states)
+        {
+            var tmp = Path.GetTempFileName();
+            Directory.CreateDirectory("states");
+
+            var exe = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "bin", "dot.exe");
+
+            var i = 0;
+            foreach (var state in states)
+            {
+                var graph = TiStateGraphPrinter.Print(state);
+                File.WriteAllText(tmp, graph);
+
+                var si = new ProcessStartInfo {FileName = exe, Arguments = $"-T png -o \"{Path.Combine("states", $"state{i}.png")}\" \"{tmp}\""};
+                var p = new Process {StartInfo = si};
+                p.Start();
+                p.WaitForExit();
+
+                i++;
+            }
+
+            File.Delete(tmp);
         }
     }
 }

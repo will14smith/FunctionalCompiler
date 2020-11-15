@@ -30,6 +30,8 @@ namespace FuncComp.TemplateInstantiation
                 TiNode.Number number => StepNum(state, number),
                 TiNode.Application application => StepAp(state, application),
                 TiNode.Supercombinator supercombinator => StepSc(state, supercombinator),
+                TiNode.Indirection indirection => StepInd(state, indirection),
+                TiNode.Primitive primitive => StepPrim(state, primitive),
 
                 _ => throw new ArgumentOutOfRangeException(nameof(headNode))
             };
@@ -37,31 +39,127 @@ namespace FuncComp.TemplateInstantiation
 
         private TiState StepNum(TiState state, TiNode.Number number)
         {
-            throw new Exception("Number applied as function");
+            var stackOnlyHasNumber = state.Stack.Pop().IsEmpty;
+            var dumpIsEmpty = state.Dump.IsEmpty;
+
+            if (!stackOnlyHasNumber || dumpIsEmpty)
+            {
+                throw new Exception("Number applied as function");
+            }
+
+            return state.PopDump();
         }
 
         private TiState StepAp(TiState state, TiNode.Application application)
         {
+            var argAddr = application.Argument;
+            var arg = state.Heap[argAddr];
+
+            if (arg is TiNode.Indirection argInd)
+            {
+                var apAddr = state.Stack.Peek();
+
+                var newHeap = state.Heap.SetItem(apAddr, new TiNode.Application(application.Function, argInd.Address));
+                return state.WithHeap(newHeap);
+            }
+
             return state.PushStack(application.Function);
         }
 
         private TiState StepSc(TiState state, TiNode.Supercombinator supercombinator)
         {
-            var (newStack, items) = state.Stack.PopMultiple(supercombinator.Parameters.Count + 1);
-
-            var args = GetArgs(state.Heap, items.Skip(1));
+            var (newStack, args, root) = GetArgs(state, supercombinator.Parameters.Count);
             var argBindings = args.Zip(supercombinator.Parameters).ToDictionary(x => x.Second, x => x.First);
             var env = state.Globals.SetItems(argBindings);
-            var (newHeap, resultAddr) = Instantiate(supercombinator.Body, state.Heap, env, null);
+            var (newHeap, resultAddr) = Instantiate(supercombinator.Body, state.Heap, env, root);
 
             newStack = newStack.Push(resultAddr);
 
             return state.WithStackAndHeap(newStack, newHeap);
         }
 
-        private static IEnumerable<int> GetArgs(ImmutableDictionary<int, TiNode> heap, IEnumerable<int> addrs)
+        private TiState StepInd(TiState state, TiNode.Indirection indirection)
         {
-            return addrs.Select(addr => heap[addr]).Cast<TiNode.Application>().Select(node => node.Argument);
+            var newStack = state.Stack.Replace(indirection.Address);
+
+            return state.WithStack(newStack);
+        }
+
+        private TiState StepPrim(TiState state, TiNode.Primitive primitive)
+        {
+            return primitive.Type switch
+            {
+                PrimitiveType.Neg => PrimNeg(state),
+                PrimitiveType.Add => PrimArith(state, (a, b) => a + b),
+                PrimitiveType.Sub => PrimArith(state, (a, b) => a - b),
+                PrimitiveType.Mul => PrimArith(state, (a, b) => a * b),
+                PrimitiveType.Div => PrimArith(state, (a, b) => a / b),
+
+                _ => throw new ArgumentOutOfRangeException(nameof(primitive))
+            };
+        }
+
+        private static TiState PrimNeg(TiState state)
+        {
+            var (newStack, argAddrs, root) = GetArgs(state, 1);
+
+            var argNode = state.Heap[argAddrs[0]];
+
+            if (!IsDataNode(argNode))
+            {
+                newStack = newStack.Push(argAddrs[0]);
+                var stackToDump = ImmutableStack<int>.Empty.Push(root);
+
+                return state.WithStackAndPushDump(newStack, stackToDump);
+            }
+
+            var dataNode = (TiNode.Number) argNode;
+            var result = new TiNode.Number(-dataNode.Value);
+            newStack = newStack.Push(root);
+            var newHeap = state.Heap.SetItem(root, result);
+
+            return state.WithStackAndHeap(newStack, newHeap);
+        }
+
+        private TiState PrimArith(TiState state, Func<int, int, int> fn)
+        {
+            var (newStack, argAddrs, root) = GetArgs(state, 2);
+
+            var leftNode = state.Heap[argAddrs[0]];
+            var rightNode = state.Heap[argAddrs[1]];
+
+            if (!IsDataNode(leftNode))
+            {
+                newStack = newStack.Push(argAddrs[0]);
+                var stackToDump = ImmutableStack<int>.Empty.Push(root);
+
+                return state.WithStackAndPushDump(newStack, stackToDump);
+            }
+
+            if (!IsDataNode(rightNode))
+            {
+                newStack = newStack.Push(argAddrs[1]);
+                var stackToDump = ImmutableStack<int>.Empty.Push(root);
+
+                return state.WithStackAndPushDump(newStack, stackToDump);
+            }
+
+            var leftDataNode = (TiNode.Number) leftNode;
+            var rightDataNode = (TiNode.Number) rightNode;
+
+            var result = new TiNode.Number(fn(leftDataNode.Value, rightDataNode.Value));
+            newStack = newStack.Push(root);
+            var newHeap = state.Heap.SetItem(root, result);
+
+            return state.WithStackAndHeap(newStack, newHeap);
+        }
+
+        private static (ImmutableStack<int> Stack, IReadOnlyList<int> ArgumentAddresses, int Root) GetArgs(TiState state, int argCount)
+        {
+            var (newStack, items) = state.Stack.PopMultiple(argCount + 1);
+
+            var args = items.Skip(1).Select(addr => state.Heap[addr]).Cast<TiNode.Application>().Select(node => node.Argument).ToList();
+            return (newStack, args, items.Last());
         }
 
         private static (ImmutableDictionary<int, TiNode>, int) Instantiate(Expression<Name> expr, ImmutableDictionary<int,TiNode> heap, ImmutableDictionary<Name,int> env, int? target)
@@ -78,7 +176,10 @@ namespace FuncComp.TemplateInstantiation
                     return AssignOrAllocate(target, heap2, new TiNode.Application(a1, a2));
 
                 case Expression<Name>.Variable variable:
-                    if(target.HasValue) throw new NotImplementedException("TODO");
+                    if (target.HasValue)
+                    {
+                        return (Assign(target.Value, heap, new TiNode.Indirection(env[variable.Name])), target.Value);
+                    }
                     return (heap, env[variable.Name]);
 
                 case Expression<Name>.Let let when !let.IsRecursive:
@@ -100,7 +201,7 @@ namespace FuncComp.TemplateInstantiation
                 {
                     foreach (var (name, _) in let.Definitions)
                     {
-                        var (newHeap, placeholder) = Allocate(heap, new TiNode.Number(0));
+                        var (newHeap, placeholder) = Allocate(heap, new TiNode.Indirection(-1));
                         heap = newHeap;
                         env = env.SetItem(name, placeholder);
                     }
@@ -137,6 +238,11 @@ namespace FuncComp.TemplateInstantiation
 
         private static bool IsComplete(TiState state)
         {
+            if (!state.Dump.IsEmpty)
+            {
+                return false;
+            }
+
             if (state.Stack.IsEmpty)
             {
                 throw new Exception("Empty stack");

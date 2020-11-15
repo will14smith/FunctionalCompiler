@@ -47,8 +47,10 @@ namespace FuncComp.TemplateInstantiation
             node switch
             {
                 TiNode.Number number => Str($"Num {number.Value}"),
-                TiNode.Application application => Str($"NAp {application.Function} {application.Argument}"),
+                TiNode.Application application => Str($"Ap {application.Function} {application.Argument}"),
                 TiNode.Supercombinator supercombinator => Str($"Supercombinator {supercombinator.Name}"),
+                TiNode.Indirection indirection => Str($"Ind {indirection.Address}"),
+                TiNode.Primitive primitive => Str($"Prim {primitive.Name} {primitive.Type}"),
 
                 _ => throw new ArgumentOutOfRangeException(nameof(node))
             };
