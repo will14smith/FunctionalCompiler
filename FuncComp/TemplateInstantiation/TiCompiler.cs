@@ -18,6 +18,10 @@ namespace FuncComp.TemplateInstantiation
             ScDef(N("not"), new [] { N("x") }, ApM(Var("if"), Var("x"), False, True)),
             ScDef(N("and"), new [] { N("x"), N("y") }, ApM(Var("if"), Var("x"), Var("y"), False)),
             ScDef(N("or"), new [] { N("x"), N("y") }, ApM(Var("if"), Var("x"), True, Var("y"))),
+
+            ScDef(N("MkPair"), new Name[0], Pack(1, 2)),
+            ScDef(N("fst"), new [] { N("p") }, ApM(Var("casePair"), Var("p"), Var("K"))),
+            ScDef(N("snd"), new [] { N("p") }, ApM(Var("casePair"), Var("p"), Var("K1"))),
         };
         private readonly IReadOnlyDictionary<Name, PrimitiveType> _primitives = new Dictionary<Name, PrimitiveType>
         {
@@ -27,14 +31,15 @@ namespace FuncComp.TemplateInstantiation
             { new Name("*"), new PrimitiveType.Mul() },
             { new Name("/"), new PrimitiveType.Div() },
 
-            { new Name("if"), new PrimitiveType.If() },
-
             { new Name(">"), new PrimitiveType.Greater() },
             { new Name(">="), new PrimitiveType.GreaterEqual() },
             { new Name("<"), new PrimitiveType.Less() },
             { new Name("<="), new PrimitiveType.LessEqual() },
             { new Name("=="), new PrimitiveType.Equal() },
             { new Name("~="), new PrimitiveType.NotEqual() },
+
+            { new Name("if"), new PrimitiveType.If() },
+            { new Name("casePair"), new PrimitiveType.CasePair() },
         };
 
         public TiState Compile(Program<Name> program)

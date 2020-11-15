@@ -19,7 +19,8 @@ namespace FuncComp
 
             // var progStr = "main = (I 100) + (I 200)";
             // var progStr = "main = Pack{2,2} 2 (Pack{2,2} 1 Pack{1,0})";
-            var progStr = "fac n = if (n == 0) 1 (n * fac (n - 1)); main = fac 10";
+            // var progStr = "fac n = if (n == 0) 1 (n * fac (n - 1)); main = fac 10";
+            var progStr = "main = fst (snd (fst (MkPair (MkPair 1 (MkPair 2 3)) 4)))";
 
             var tokens = Lexer.lex(progStr);
             var prog = Parser.parse(tokens);

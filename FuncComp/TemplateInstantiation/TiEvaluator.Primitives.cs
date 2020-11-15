@@ -10,13 +10,13 @@ namespace FuncComp.TemplateInstantiation
         {
             return primitive.Type switch
             {
+                PrimitiveType.Constructor constr => PrimConstr(state, constr),
+
                 PrimitiveType.Neg _ => PrimUnary(state, a => -a),
                 PrimitiveType.Add _ => PrimBinaryArith(state, (a, b) => a + b),
                 PrimitiveType.Sub _ => PrimBinaryArith(state, (a, b) => a - b),
                 PrimitiveType.Mul _ => PrimBinaryArith(state, (a, b) => a * b),
                 PrimitiveType.Div _ => PrimBinaryArith(state, (a, b) => a / b),
-
-                PrimitiveType.If _ => PrimIf(state),
 
                 PrimitiveType.Greater _ => PrimBinaryComp(state, (a, b) => a > b),
                 PrimitiveType.GreaterEqual _ => PrimBinaryComp(state, (a, b) => a >= b),
@@ -25,10 +25,24 @@ namespace FuncComp.TemplateInstantiation
                 PrimitiveType.Equal _ => PrimBinaryComp(state, (a, b) => a == b),
                 PrimitiveType.NotEqual _ => PrimBinaryComp(state, (a, b) => a != b),
 
-                PrimitiveType.Constructor constr => PrimConstr(state, constr),
+                PrimitiveType.If _ => PrimIf(state),
+                PrimitiveType.CasePair _ => PrimCasePair(state),
+
 
                 _ => throw new ArgumentOutOfRangeException(nameof(primitive))
             };
+        }
+
+        private TiState PrimConstr(TiState state, PrimitiveType.Constructor constr)
+        {
+            var (newStack, argAddrs, root) = GetArgs(state, constr.Arity);
+
+            var node = new TiNode.Data(constr.Tag, argAddrs);
+
+            newStack = newStack.Push(root);
+            var newHeap = state.Heap.SetItem(root, node);
+
+            return state.WithStackAndHeap(newStack, newHeap);
         }
 
         private static TiState PrimUnary(TiState state, Func<int, int> fn)
@@ -120,17 +134,37 @@ namespace FuncComp.TemplateInstantiation
             var newHeap = state.Heap.SetItem(root, result);
 
             return state.WithStackAndHeap(newStack, newHeap);
-
         }
 
-        private TiState PrimConstr(TiState state, PrimitiveType.Constructor constr)
+        private TiState PrimCasePair(TiState state)
         {
-            var (newStack, argAddrs, root) = GetArgs(state, constr.Arity);
+            var (newStack, argAddrs, root) = GetArgs(state, 2);
 
-            var node = new TiNode.Data(constr.Tag, argAddrs);
+            var pairNode = state.Heap[argAddrs[0]];
+
+            if (!IsDataNode(pairNode))
+            {
+                newStack = newStack.Push(argAddrs[0]);
+                var stackToDump = ImmutableStack<int>.Empty.Push(root);
+
+                return state.WithStackAndPushDump(newStack, stackToDump);
+            }
+
+            var pairDataNode = (TiNode.Data) pairNode;
+
+            if (pairDataNode.Tag != 1 || pairDataNode.Components.Count != 2)
+            {
+                throw new InvalidOperationException("not a pair");
+            }
+
+            // result = Ap (Ap f a) b
+            var ap = new TiNode.Application(argAddrs[1], pairDataNode.Components[0]);
+            var (newHeap, apAddr) = Allocate(state.Heap, ap);
+
+            var result = new TiNode.Application(apAddr, pairDataNode.Components[1]);
 
             newStack = newStack.Push(root);
-            var newHeap = state.Heap.SetItem(root, node);
+            newHeap = newHeap.SetItem(root, result);
 
             return state.WithStackAndHeap(newStack, newHeap);
         }

@@ -97,13 +97,14 @@ namespace FuncComp.TemplateInstantiation
         public class Mul : PrimitiveType { }
         public class Div : PrimitiveType { }
 
-        public class If : PrimitiveType { }
-
         public class Greater : PrimitiveType { }
         public class GreaterEqual : PrimitiveType { }
         public class Less : PrimitiveType { }
         public class LessEqual : PrimitiveType { }
         public class Equal : PrimitiveType { }
         public class NotEqual : PrimitiveType { }
+
+        public class If : PrimitiveType { }
+        public class CasePair : PrimitiveType { }
     }
 }
