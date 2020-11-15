@@ -104,7 +104,9 @@ namespace FuncComp.TemplateInstantiation
         public class Equal : PrimitiveType { }
         public class NotEqual : PrimitiveType { }
 
+        public class Abort : PrimitiveType { }
         public class If : PrimitiveType { }
         public class CasePair : PrimitiveType { }
+        public class CaseList : PrimitiveType { }
     }
 }

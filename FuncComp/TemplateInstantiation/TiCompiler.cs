@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
 using FuncComp.Helpers;
@@ -22,6 +23,15 @@ namespace FuncComp.TemplateInstantiation
             ScDef(N("MkPair"), new Name[0], Pack(1, 2)),
             ScDef(N("fst"), new [] { N("p") }, ApM(Var("casePair"), Var("p"), Var("K"))),
             ScDef(N("snd"), new [] { N("p") }, ApM(Var("casePair"), Var("p"), Var("K1"))),
+
+            ScDef(N("Nil"), new Name[0], Pack(1, 0)),
+            ScDef(N("Cons"), new Name[0], Pack(2, 2)),
+            ScDef(N("length"), new [] { N("xs") }, ApM(Var("caseList"), Var("xs"), Num(0), Var("length_"))),
+            ScDef(N("length_"), new [] { N("x"), N("xs") }, ApM(Var("+"), Num(1), Ap(Var("length"), Var("xs")))),
+            ScDef(N("head"), new [] { N("xs") }, ApM(Var("caseList"), Var("xs"), Var("abort"), Var("K"))),
+            ScDef(N("tail"), new [] { N("xs") }, ApM(Var("caseList"), Var("xs"), Var("abort"), Var("tail_"))),
+            ScDef(N("tail_"), new [] { N("x"), N("xs") }, ApM(Var("if"), Ap(Var("tail__"), Var("xs")), Var("x"), Ap(Var("tail"), Var("xs")))),
+            ScDef(N("tail__"), new [] { N("xs") }, ApM(Var("caseList"), Var("xs"), True, ApM(Var("twice"), Var("K"), False))),
         };
         private readonly IReadOnlyDictionary<Name, PrimitiveType> _primitives = new Dictionary<Name, PrimitiveType>
         {
@@ -38,8 +48,10 @@ namespace FuncComp.TemplateInstantiation
             { new Name("=="), new PrimitiveType.Equal() },
             { new Name("~="), new PrimitiveType.NotEqual() },
 
+            { new Name("abort"), new PrimitiveType.Abort() },
             { new Name("if"), new PrimitiveType.If() },
             { new Name("casePair"), new PrimitiveType.CasePair() },
+            { new Name("caseList"), new PrimitiveType.CaseList() },
         };
 
         public TiState Compile(Program<Name> program)

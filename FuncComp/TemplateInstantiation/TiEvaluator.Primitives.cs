@@ -25,8 +25,10 @@ namespace FuncComp.TemplateInstantiation
                 PrimitiveType.Equal _ => PrimBinaryComp(state, (a, b) => a == b),
                 PrimitiveType.NotEqual _ => PrimBinaryComp(state, (a, b) => a != b),
 
+                PrimitiveType.Abort _ => throw new Exception("aborting"),
                 PrimitiveType.If _ => PrimIf(state),
                 PrimitiveType.CasePair _ => PrimCasePair(state),
+                PrimitiveType.CaseList _ => PrimCaseList(state),
 
 
                 _ => throw new ArgumentOutOfRangeException(nameof(primitive))
@@ -168,5 +170,51 @@ namespace FuncComp.TemplateInstantiation
 
             return state.WithStackAndHeap(newStack, newHeap);
         }
+
+        private TiState PrimCaseList(TiState state)
+        {
+            var (newStack, argAddrs, root) = GetArgs(state, 3);
+
+            var listNode = state.Heap[argAddrs[0]];
+
+            if (!IsDataNode(listNode))
+            {
+                newStack = newStack.Push(argAddrs[0]);
+                var stackToDump = ImmutableStack<int>.Empty.Push(root);
+
+                return state.WithStackAndPushDump(newStack, stackToDump);
+            }
+
+            var listDataNode = (TiNode.Data) listNode;
+
+
+            if (listDataNode.Tag < 1 || listDataNode.Tag > 2 || (listDataNode.Tag == 1 && listDataNode.Components.Any()) || (listDataNode.Tag == 2 && listDataNode.Components.Count != 2))
+            {
+                throw new InvalidOperationException("not a list");
+            }
+
+            TiNode result;
+            var newHeap = state.Heap;
+
+            if (listDataNode.Tag == 1)
+            {
+                result = new TiNode.Indirection(argAddrs[1]);
+            }
+            else
+            {
+                // result = Ap (Ap f a) b
+                var ap = new TiNode.Application(argAddrs[2], listDataNode.Components[0]);
+                int apAddr;
+                (newHeap, apAddr) = Allocate(state.Heap, ap);
+
+                result = new TiNode.Application(apAddr, listDataNode.Components[1]);
+            }
+
+            newStack = newStack.Push(root);
+            newHeap = newHeap.SetItem(root, result);
+
+            return state.WithStackAndHeap(newStack, newHeap);
+        }
+
     }
 }

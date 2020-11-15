@@ -60,10 +60,8 @@ namespace FuncComp.Language
                 throw new System.NotImplementedException();
             }
 
-            public PrettyPrinter.Node VisitConstructor(Expression<Name>.Constructor expr, object? state)
-            {
-                throw new System.NotImplementedException();
-            }
+            public PrettyPrinter.Node VisitConstructor(Expression<Name>.Constructor expr, object? state) =>
+                Append(Str("Pack{"), Num(expr.Tag), Str(", "), Num(expr.Arity), Str("}"));
 
             public PrettyPrinter.Node VisitLambda(Expression<Name>.Lambda expr, object? state)
             {
