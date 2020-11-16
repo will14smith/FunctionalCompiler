@@ -108,5 +108,7 @@ namespace FuncComp.TemplateInstantiation
         public class If : PrimitiveType { }
         public class CasePair : PrimitiveType { }
         public class CaseList : PrimitiveType { }
+        public class Stop : PrimitiveType { }
+        public class Print : PrimitiveType { }
     }
 }

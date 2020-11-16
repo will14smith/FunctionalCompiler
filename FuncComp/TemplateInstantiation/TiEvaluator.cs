@@ -115,7 +115,7 @@ namespace FuncComp.TemplateInstantiation
 
             if (state.Stack.IsEmpty)
             {
-                throw new Exception("Empty stack");
+                return true;
             }
 
             var newStack = state.Stack.Pop(out var headAddr);

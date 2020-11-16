@@ -29,7 +29,8 @@ namespace FuncComp.TemplateInstantiation
                 PrimitiveType.If _ => PrimIf(state),
                 PrimitiveType.CasePair _ => PrimCasePair(state),
                 PrimitiveType.CaseList _ => PrimCaseList(state),
-
+                PrimitiveType.Stop _ => PrimStop(state),
+                PrimitiveType.Print _ => PrimPrint(state),
 
                 _ => throw new ArgumentOutOfRangeException(nameof(primitive))
             };
@@ -216,5 +217,47 @@ namespace FuncComp.TemplateInstantiation
             return state.WithStackAndHeap(newStack, newHeap);
         }
 
+        private TiState PrimStop(TiState state)
+        {
+            var (newStack, _, _) = GetArgs(state, 0);
+
+            if (!newStack.IsEmpty)
+            {
+                throw new NotImplementedException("invalid stack to stop on");
+            }
+
+            if (!state.Dump.IsEmpty)
+            {
+                throw new NotImplementedException("invalid dump to stop on");
+            }
+
+            return state.WithStack(ImmutableStack<int>.Empty);
+        }
+
+        private TiState PrimPrint(TiState state)
+        {
+            var (newStack, argAddrs, root) = GetArgs(state, 2);
+
+            var valueNode = state.Heap[argAddrs[0]];
+
+            if (!IsDataNode(valueNode))
+            {
+                newStack = newStack.Push(argAddrs[0]);
+                var stackToDump = ImmutableStack<int>.Empty.Push(root);
+
+                return state.WithStackAndPushDump(newStack, stackToDump);
+            }
+
+            if (!state.Dump.IsEmpty)
+            {
+                throw new NotImplementedException("invalid dump to print with");
+            }
+
+            var valueDataNode = (TiNode.Number) valueNode;
+
+            newStack = newStack.Push(argAddrs[1]);
+
+            return state.WithStackAndAppendOutput(newStack, valueDataNode.Value);
+        }
     }
 }

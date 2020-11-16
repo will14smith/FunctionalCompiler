@@ -32,6 +32,9 @@ namespace FuncComp.TemplateInstantiation
             ScDef(N("tail"), new [] { N("xs") }, ApM(Var("caseList"), Var("xs"), Var("abort"), Var("tail_"))),
             ScDef(N("tail_"), new [] { N("x"), N("xs") }, ApM(Var("if"), Ap(Var("tail__"), Var("xs")), Var("x"), Ap(Var("tail"), Var("xs")))),
             ScDef(N("tail__"), new [] { N("xs") }, ApM(Var("caseList"), Var("xs"), True, ApM(Var("twice"), Var("K"), False))),
+
+            ScDef(N("printList"), new [] { N("xs") }, ApM(Var("caseList"), Var("xs"), Var("stop"), Var("printCons"))),
+            ScDef(N("printCons"), new [] { N("x"), N("xs") }, ApM(Var("print"), Var("x"), Ap(Var("printList"), Var("xs")))),
         };
         private readonly IReadOnlyDictionary<Name, PrimitiveType> _primitives = new Dictionary<Name, PrimitiveType>
         {
@@ -52,6 +55,8 @@ namespace FuncComp.TemplateInstantiation
             { new Name("if"), new PrimitiveType.If() },
             { new Name("casePair"), new PrimitiveType.CasePair() },
             { new Name("caseList"), new PrimitiveType.CaseList() },
+            { new Name("stop"), new PrimitiveType.Stop() },
+            { new Name("print"), new PrimitiveType.Print() },
         };
 
         public TiState Compile(Program<Name> program)
@@ -63,7 +68,7 @@ namespace FuncComp.TemplateInstantiation
             var initialStack = ImmutableStack<int>.Empty.Push(globals[new Name("main")]);
             var initialDump = ImmutableStack<ImmutableStack<int>>.Empty;
 
-            return new TiState(initialStack, initialDump, initialHeap.ToImmutableDictionary(), globals.ToImmutableDictionary());
+            return new TiState(ImmutableList<int>.Empty, initialStack, initialDump, initialHeap.ToImmutableDictionary(), globals.ToImmutableDictionary());
         }
 
         private (IReadOnlyDictionary<int, TiNode> Heap, IReadOnlyDictionary<Name, int> Globals) BuildInitialHeap(IEnumerable<SupercombinatorDefinition<Name>> supercombinatorDefs)

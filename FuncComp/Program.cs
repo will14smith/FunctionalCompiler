@@ -24,7 +24,9 @@ namespace FuncComp
             // var progStr = "list = Cons 3 (Cons 2 (Cons 1 Nil)); main = length list";
             // var progStr = "list = Cons 3 (Cons 2 (Cons 1 Nil)); main = head list";
             // var progStr = "list = Nil; main = head list";
-            var progStr = "list = Cons 3 (Cons 2 (Cons 1 Nil)); main = tail list";
+            // var progStr = "list = Cons 3 (Cons 2 (Cons 1 Nil)); main = tail list";
+            // var progStr = "main = print 10 stop";
+            var progStr = "list = Cons 3 (Cons 2 (Cons 1 Nil)); main = printList list";
 
             var tokens = Lexer.lex(progStr);
             var prog = Parser.parse(tokens);

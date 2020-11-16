@@ -27,7 +27,12 @@ namespace FuncComp.TemplateInstantiation
                         return (Assign(target.Value, heap, new TiNode.Indirection(env[variable.Name])), target.Value);
                     }
 
-                    return (heap, env[variable.Name]);
+                    if (!env.TryGetValue(variable.Name, out var variableAddr))
+                    {
+                        throw new KeyNotFoundException(variable.Name.Value);
+                    }
+
+                    return (heap, variableAddr);
 
                 case Expression<Name>.Let let when !let.IsRecursive:
                 {

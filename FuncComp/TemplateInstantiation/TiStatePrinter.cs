@@ -23,7 +23,16 @@ namespace FuncComp.TemplateInstantiation
             return PrettyPrinter.Display(node);
         }
 
-        private static PrettyPrinter.Node ShowState(TiState state) => Append(ShowStack(state.Heap, state.Stack), Newline());
+        private static PrettyPrinter.Node ShowState(TiState state) => Append(ShowOutput(state.Output), Newline(), ShowStack(state.Heap, state.Stack), Newline());
+
+        private static PrettyPrinter.Node ShowOutput(ImmutableList<int> output)
+        {
+            return Append(
+                Str("Out ["),
+                Indent(Interleave(new PrettyPrinter.Node.Newline(), output.Select(Num))),
+                Str(" ]")
+            );
+        }
 
         private static PrettyPrinter.Node ShowStack(ImmutableDictionary<int, TiNode> heap, ImmutableStack<int> stack) =>
             Append(
