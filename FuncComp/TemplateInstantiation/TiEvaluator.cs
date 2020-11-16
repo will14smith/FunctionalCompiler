@@ -15,6 +15,10 @@ namespace FuncComp.TemplateInstantiation
             while (!IsComplete(state))
             {
                 state = Step(state);
+
+                // TODO use some stats to do this, instead of everytime
+                state = TiGarbageCollector.Collect(state);
+
                 yield return state;
             }
         }
