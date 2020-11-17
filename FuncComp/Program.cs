@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using FuncComp.GMachine;
 using FuncComp.Parsing;
 using FuncComp.TemplateInstantiation;
 
@@ -17,6 +18,10 @@ namespace FuncComp
             // var progStr = ProgramPrinter.Print(prog);
             // var progStr = "square x = x * x; main = square (square 3)";
 
+            // var progStr = "main = 100";
+            // var progStr = "main = I 100";
+            // var progStr = "main = K 100 200";
+            var progStr = "main = S K K 3";
             // var progStr = "main = (I 100) + (I 200)";
             // var progStr = "main = Pack{2,2} 2 (Pack{2,2} 1 Pack{1,0})";
             // var progStr = "fac n = if (n == 0) 1 (n * fac (n - 1)); main = fac 10";
@@ -26,24 +31,51 @@ namespace FuncComp
             // var progStr = "list = Nil; main = head list";
             // var progStr = "list = Cons 3 (Cons 2 (Cons 1 Nil)); main = tail list";
             // var progStr = "main = print 10 stop";
-            var progStr = "list = Cons 3 (Cons 2 (Cons 1 Nil)); main = printList list";
+            // var progStr = "list = Cons 3 (Cons 2 (Cons 1 Nil)); main = printList list";
 
             var tokens = Lexer.lex(progStr);
             var prog = Parser.parse(tokens);
 
+            var timer = new Stopwatch();
+
             // template instantiation
             {
+                timer.Restart();
                 var compiler = new TiCompiler();
                 var initialState = compiler.Compile(prog);
+                timer.Stop();
+                Console.WriteLine($"Ti: Compilation took {timer.Elapsed.TotalMilliseconds:0.00}ms");
 
+                timer.Restart();
                 var evaluator = new TiEvaluator();
                 var states = evaluator.Evaluate(initialState).ToList();
+                timer.Stop();
+                Console.WriteLine($"Ti: Evaluation took {timer.Elapsed.TotalMilliseconds:0.00}ms");
 
-                Console.WriteLine($"Took {states.Count} states and {states.Last().Heap.Count} heap entries");
+                Console.WriteLine($"Ti: Took {states.Count} states and {states.Last().Heap.Count} heap entries");
                 var finalState = states.Last();
                 Console.WriteLine(TiStatePrinter.Print(finalState));
 
-                DrawAllStates(states);
+                // DrawAllStates(states);
+            }
+
+            //  g-machine
+            {
+                timer.Restart();
+                var compiler = new GmCompiler();
+                var initialState = compiler.Compile(prog);
+                timer.Stop();
+                Console.WriteLine($"Gm: Compilation took {timer.Elapsed.TotalMilliseconds:0.00}ms");
+
+                timer.Restart();
+                var evaluator = new GmEvaluator();
+                var states = evaluator.Evaluate(initialState).ToList();
+                timer.Stop();
+                Console.WriteLine($"Gm: Evaluation took {timer.Elapsed.TotalMilliseconds:0.00}ms");
+
+                Console.WriteLine($"Gm: Took {states.Count} states and {states.Last().Heap.Count} heap entries");
+                var finalState = states.Last();
+                Console.WriteLine(GmStatePrinter.Print(finalState));
             }
         }
 

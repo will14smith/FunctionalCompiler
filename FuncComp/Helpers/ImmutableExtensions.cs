@@ -26,5 +26,25 @@ namespace FuncComp.Helpers
         }
 
         public static ImmutableStack<T> Replace<T>(this ImmutableStack<T> stack, T newValue) => stack.Pop().Push(newValue);
+
+        public static T GetNth<T>(this ImmutableStack<T> stack, int offset)
+        {
+            while (offset-- > 0)
+            {
+                stack = stack.Pop();
+            }
+
+            return stack.Peek();
+        }
+
+        public static ImmutableQueue<T> EnqueueRange<T>(this ImmutableQueue<T> queue, IEnumerable<T> items)
+        {
+            foreach (var item in items)
+            {
+                queue = queue.Enqueue(item);
+            }
+
+            return queue;
+        }
     }
 }
