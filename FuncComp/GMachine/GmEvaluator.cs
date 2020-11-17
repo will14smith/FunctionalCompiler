@@ -33,7 +33,8 @@ namespace FuncComp.GMachine
                 GmInstruction.PushInt pushInt => StepPushInt(pushInt, newState),
                 GmInstruction.MkAp mkAp => StepMkAp(mkAp, newState),
                 GmInstruction.Push push => StepPush(push, newState),
-                GmInstruction.Slide slide => StepSlide(slide, newState),
+                GmInstruction.Update update => StepUpdate(update, newState),
+                GmInstruction.Pop pop => StepPop(pop, newState),
                 GmInstruction.Unwind unwind => StepUnwind(unwind, newState),
 
                 _ => throw new ArgumentOutOfRangeException(nameof(instruction))
@@ -78,13 +79,19 @@ namespace FuncComp.GMachine
             return state.Push(argument);
         }
 
-        private static GmState StepSlide(GmInstruction.Slide instruction, GmState state)
+        private static GmState StepUpdate(GmInstruction.Update instruction, GmState state)
         {
-            var head = state.Stack.Peek();
+            int head;
+            (state, head) = state.Pop();
+            var apAddr = state.Stack.GetNth(instruction.Offset);
 
-            state = state.Drop(instruction.Count);
+            var node = new GmNode.Indirection(head);
+            return state.Set(apAddr, node);
+        }
 
-            return state.Push(head);
+        private static GmState StepPop(GmInstruction.Pop instruction, GmState state)
+        {
+            return state.Drop(instruction.Count);
         }
 
         private static GmState StepUnwind(GmInstruction.Unwind _, GmState state)
@@ -97,6 +104,7 @@ namespace FuncComp.GMachine
                 GmNode.Number _ => state,
                 GmNode.Application ap => UnwindAp(ap, state),
                 GmNode.Global global => UnwindGlobal(global, state),
+                GmNode.Indirection ind => UnwindInd(ind, state),
 
                 _ => throw new ArgumentOutOfRangeException(nameof(headNode))
             };
@@ -111,6 +119,11 @@ namespace FuncComp.GMachine
         {
             // TODO check stack size
             return state.WithCode(global.Code);
+        }
+
+        private static GmState UnwindInd(GmNode.Indirection ind, GmState state)
+        {
+            return state.Drop(1).Push(ind.Addr).EnqueueInstruction(GmInstruction.Unwind.Instance);
         }
     }
 }

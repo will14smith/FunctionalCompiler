@@ -21,7 +21,8 @@ namespace FuncComp
             // var progStr = "main = 100";
             // var progStr = "main = I 100";
             // var progStr = "main = K 100 200";
-            var progStr = "main = S K K 3";
+            // var progStr = "main = S K K 3";
+            var progStr = "main = twice twice I 3";
             // var progStr = "main = (I 100) + (I 200)";
             // var progStr = "main = Pack{2,2} 2 (Pack{2,2} 1 Pack{1,0})";
             // var progStr = "fac n = if (n == 0) 1 (n * fac (n - 1)); main = fac 10";

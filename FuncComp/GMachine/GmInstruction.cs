@@ -65,17 +65,30 @@ namespace FuncComp.GMachine
             public override int GetHashCode() => 29;
         }
 
-        public class Slide : GmInstruction
+        public class Update : GmInstruction
         {
-            public Slide(int count)
+            public Update(int offset)
+            {
+                Offset = offset;
+            }
+
+            public int Offset { get; }
+
+            public override bool Equals(object? obj) => obj is Update other && Offset == other.Offset;
+            public override int GetHashCode() => HashCode.Combine(31, Offset);
+        }
+
+        public class Pop : GmInstruction
+        {
+            public Pop(int count)
             {
                 Count = count;
             }
 
             public int Count { get; }
 
-            public override bool Equals(object? obj) => obj is Slide other && Count == other.Count;
-            public override int GetHashCode() => HashCode.Combine(31, Count);
+            public override bool Equals(object? obj) => obj is Pop other && Count == other.Count;
+            public override int GetHashCode() => HashCode.Combine(37, Count);
         }
     }
 }

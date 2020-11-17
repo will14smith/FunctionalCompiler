@@ -47,7 +47,11 @@ namespace FuncComp.GMachine
         {
             var code = CompileC(expr, environment);
 
-            return code.Enqueue(new GmInstruction.Slide(environment.Count + 1)).Enqueue(GmInstruction.Unwind.Instance);
+            return code.EnqueueRange(new GmInstruction[] {
+                new GmInstruction.Update(environment.Count),
+                new GmInstruction.Pop(environment.Count),
+                GmInstruction.Unwind.Instance
+            });
         }
 
         private ImmutableQueue<GmInstruction> CompileC(Expression<Name> expr, IReadOnlyDictionary<Name,int> environment)

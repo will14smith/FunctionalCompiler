@@ -28,6 +28,7 @@ namespace FuncComp.GMachine
                 GmNode.Number number => Str($"Num {number.Value}"),
                 GmNode.Application application => Str($"Ap {application.Function} {application.Argument}"),
                 GmNode.Global _ => Str($"Global {state.Globals.Single(x => x.Value == addr).Key}"),
+                GmNode.Indirection ind => Str($"Ind {ShowAddr(ind.Addr)}"),
 
                 _ => throw new ArgumentOutOfRangeException(nameof(addr))
             };

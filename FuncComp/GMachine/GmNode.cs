@@ -37,5 +37,15 @@ namespace FuncComp.GMachine
             public int ArgCount { get; }
             public ImmutableQueue<GmInstruction> Code { get; }
         }
+
+        public class Indirection : GmNode
+        {
+            public Indirection(int addr)
+            {
+                Addr = addr;
+            }
+
+            public int Addr { get; }
+        }
     }
 }
