@@ -22,8 +22,11 @@ namespace FuncComp
             // var progStr = "main = I 100";
             // var progStr = "main = K 100 200";
             // var progStr = "main = S K K 3";
-            var progStr = "main = twice twice I 3";
+            // var progStr = "main = twice twice I 3";
             // var progStr = "main = (I 100) + (I 200)";
+            // var progStr = "main = let x = 10 in I x";
+            // var progStr = "pair x y f = f x y; fst p = p K; snd p = p K1; f x y = letrec a = pair x b; b = pair y a in fst (snd (snd (snd a))); main = f 3 4";
+            var progStr = "Y f = letrec x = f x in x; main = Y";
             // var progStr = "main = Pack{2,2} 2 (Pack{2,2} 1 Pack{1,0})";
             // var progStr = "fac n = if (n == 0) 1 (n * fac (n - 1)); main = fac 10";
             // var progStr = "main = fst (snd (fst (MkPair (MkPair 1 (MkPair 2 3)) 4)))";

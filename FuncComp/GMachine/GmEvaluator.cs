@@ -35,6 +35,8 @@ namespace FuncComp.GMachine
                 GmInstruction.Push push => StepPush(push, newState),
                 GmInstruction.Update update => StepUpdate(update, newState),
                 GmInstruction.Pop pop => StepPop(pop, newState),
+                GmInstruction.Slide slide => StepSlide(slide, newState),
+                GmInstruction.Alloc alloc => StepAlloc(alloc, newState),
                 GmInstruction.Unwind unwind => StepUnwind(unwind, newState),
 
                 _ => throw new ArgumentOutOfRangeException(nameof(instruction))
@@ -71,12 +73,9 @@ namespace FuncComp.GMachine
 
         private static GmState StepPush(GmInstruction.Push instruction, GmState state)
         {
-            var apAddr = state.Stack.GetNth(instruction.Offset + 1);
+            var arg = state.Stack.GetNth(instruction.Offset);
 
-            var apNode = (GmNode.Application)state.Heap[apAddr];
-            var argument = apNode.Argument;
-
-            return state.Push(argument);
+            return state.Push(arg);
         }
 
         private static GmState StepUpdate(GmInstruction.Update instruction, GmState state)
@@ -92,6 +91,27 @@ namespace FuncComp.GMachine
         private static GmState StepPop(GmInstruction.Pop instruction, GmState state)
         {
             return state.Drop(instruction.Count);
+        }
+
+        private static GmState StepSlide(GmInstruction.Slide instruction, GmState state)
+        {
+            var head = state.Stack.Peek();
+
+            state = state.Drop(instruction.Count + 1);
+
+            return state.Push(head);
+        }
+
+        private static GmState StepAlloc(GmInstruction.Alloc instruction, GmState state)
+        {
+            var count = instruction.Count;
+
+            while (count-- > 0)
+            {
+                state = state.AllocateAndPush(new GmNode.Indirection(-1));
+            }
+
+            return state;
         }
 
         private static GmState StepUnwind(GmInstruction.Unwind _, GmState state)
@@ -117,7 +137,18 @@ namespace FuncComp.GMachine
 
         private static GmState UnwindGlobal(GmNode.Global global, GmState state)
         {
-            // TODO check stack size
+            IReadOnlyList<int> args;
+            (state, args) = state.Pop(global.ArgCount + 1);
+
+            state = state.Push(args[global.ArgCount]);
+
+            // args[0] is the Global node
+            for (var i = args.Count - 1; i >= 1; i--)
+            {
+                var apNode = (GmNode.Application) state.Heap[args[i]];
+                state = state.Push(apNode.Argument);
+            }
+
             return state.WithCode(global.Code);
         }
 

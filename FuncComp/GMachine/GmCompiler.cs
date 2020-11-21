@@ -38,12 +38,12 @@ namespace FuncComp.GMachine
 
         private ImmutableQueue<GmInstruction> CompileSc(IReadOnlyCollection<Name> parameters, Expression<Name> body)
         {
-            var parameterOffsets = parameters.Select((n, i) => (Index: i, Name: n)).ToDictionary(x=> x.Name, x=> x.Index);
+            var parameterOffsets = parameters.Select((n, i) => (Index: i, Name: n)).ToImmutableDictionary(x=> x.Name, x=> x.Index);
 
             return CompileR(body, parameterOffsets);
         }
 
-        private ImmutableQueue<GmInstruction> CompileR(Expression<Name> expr, IReadOnlyDictionary<Name, int> environment)
+        private ImmutableQueue<GmInstruction> CompileR(Expression<Name> expr, ImmutableDictionary<Name, int> environment)
         {
             var code = CompileC(expr, environment);
 
@@ -54,7 +54,7 @@ namespace FuncComp.GMachine
             });
         }
 
-        private ImmutableQueue<GmInstruction> CompileC(Expression<Name> expr, IReadOnlyDictionary<Name,int> environment)
+        private ImmutableQueue<GmInstruction> CompileC(Expression<Name> expr, ImmutableDictionary<Name, int> environment)
         {
             var code = ImmutableQueue<GmInstruction>.Empty;
 
@@ -63,14 +63,68 @@ namespace FuncComp.GMachine
                 Expression<Name>.Variable variable => environment.TryGetValue(variable.Name, out var offset) ? code.Enqueue(new GmInstruction.Push(offset)) : code.Enqueue(new GmInstruction.PushGlobal(variable.Name)),
                 Expression<Name>.Number num => code.Enqueue(new GmInstruction.PushInt(num.Value)),
                 Expression<Name>.Application ap => code.EnqueueRange(CompileC(ap.Parameter, environment)).EnqueueRange(CompileC(ap.Function, ArgOffset(1, environment))).Enqueue(GmInstruction.MkAp.Instance),
+                Expression<Name>.Let let when !let.IsRecursive => CompileCLet(let, environment),
+                Expression<Name>.Let letRec when letRec.IsRecursive => CompileCLetRec(letRec, environment),
+
 
                 _ => throw new ArgumentOutOfRangeException(nameof(expr))
             };
         }
 
-        private static IReadOnlyDictionary<Name, int> ArgOffset(int offset, IReadOnlyDictionary<Name,int> environment)
+        private ImmutableQueue<GmInstruction> CompileCLet(Expression<Name>.Let let, ImmutableDictionary<Name, int> environment)
         {
-            return environment.ToDictionary(x => x.Key, x => x.Value + offset);
+            var definitionsCount = let.Definitions.Count;
+
+            var innerEnvironment = ArgOffset(definitionsCount, environment);
+            var instructions = ImmutableQueue<GmInstruction>.Empty;
+
+            var offset = 0;
+            foreach (var (name, defnExpr) in let.Definitions)
+            {
+                var defnInstructions = CompileC(defnExpr, ArgOffset(offset++, environment));
+                innerEnvironment = innerEnvironment.SetItem(name, definitionsCount - offset);
+                instructions = instructions.EnqueueRange(defnInstructions);
+            }
+
+            var innerInstructions = CompileC(let.Body, innerEnvironment);
+            instructions = instructions.EnqueueRange(innerInstructions).Enqueue(new GmInstruction.Slide(definitionsCount));
+
+            return instructions;
+        }
+
+        private ImmutableQueue<GmInstruction> CompileCLetRec(Expression<Name>.Let letRec, ImmutableDictionary<Name, int> environment)
+        {
+            var definitionsCount = letRec.Definitions.Count;
+
+            environment = ArgOffset(definitionsCount, environment);
+
+            var offset = 0;
+            foreach (var (name, _) in letRec.Definitions)
+            {
+                var targetOffset = definitionsCount - ++offset;
+                environment = environment.SetItem(name, targetOffset);
+            }
+
+
+            var instructions = ImmutableQueue<GmInstruction>.Empty.Enqueue(new GmInstruction.Alloc(definitionsCount));
+
+            offset = 0;
+            foreach (var (_, defnExpr) in letRec.Definitions)
+            {
+                var defnInstructions = CompileC(defnExpr, environment);
+                var targetOffset = definitionsCount - ++offset;
+                instructions = instructions.EnqueueRange(defnInstructions).Enqueue(new GmInstruction.Update(targetOffset));
+            }
+
+            var innerInstructions = CompileC(letRec.Body, environment);
+            instructions = instructions.EnqueueRange(innerInstructions).Enqueue(new GmInstruction.Slide(definitionsCount));
+
+            return instructions;
+        }
+
+        private static ImmutableDictionary<Name, int> ArgOffset(int offset, IReadOnlyDictionary<Name, int> environment)
+        {
+            return environment.ToImmutableDictionary(x => x.Key, x => x.Value + offset);
         }
     }
 }

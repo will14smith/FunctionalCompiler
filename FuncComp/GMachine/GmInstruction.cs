@@ -90,5 +90,31 @@ namespace FuncComp.GMachine
             public override bool Equals(object? obj) => obj is Pop other && Count == other.Count;
             public override int GetHashCode() => HashCode.Combine(37, Count);
         }
+
+        public class Slide : GmInstruction
+        {
+            public Slide(int count)
+            {
+                Count = count;
+            }
+
+            public int Count { get; }
+
+            public override bool Equals(object? obj) => obj is Slide other && Count == other.Count;
+            public override int GetHashCode() => HashCode.Combine(39, Count);
+        }
+
+        public class Alloc : GmInstruction
+        {
+            public Alloc(int count)
+            {
+                Count = count;
+            }
+
+            public int Count { get; }
+
+            public override bool Equals(object? obj) => obj is Alloc other && Count == other.Count;
+            public override int GetHashCode() => HashCode.Combine(41, Count);
+        }
     }
 }
