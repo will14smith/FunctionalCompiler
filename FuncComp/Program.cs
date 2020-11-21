@@ -28,7 +28,11 @@ namespace FuncComp
             // var progStr = "pair x y f = f x y; fst p = p K; snd p = p K1; f x y = letrec a = pair x b; b = pair y a in fst (snd (snd (snd a))); main = f 3 4";
             // var progStr = "Y f = letrec x = f x in x; main = Y";
             // var progStr = "main = Pack{2,2} 2 (Pack{2,2} 1 Pack{1,0})";
-            var progStr = "fac n = if (n == 0) 1 (n * fac (n - 1)); main = fac 10";
+            // var progStr = "fac n = if (n == 0) 1 (n * fac (n - 1)); main = fac 10";
+            // var progStr = "gcd a b = if (a==b) a if (a < b) (gcd b a) (gcd b (a - b)); main = gcd 6 10";
+            var progStr = "fib n = if (n==0) 0 if (n==1) 1 (fib (n-1) + fib (n-2)); main = fib 4";
+            // var progStr = "main = K 1 (1/0)";
+            // var progStr = "main = 1 + 2";
             // var progStr = "main = fst (snd (fst (MkPair (MkPair 1 (MkPair 2 3)) 4)))";
             // var progStr = "list = Cons 3 (Cons 2 (Cons 1 Nil)); main = length list";
             // var progStr = "list = Cons 3 (Cons 2 (Cons 1 Nil)); main = head list";
