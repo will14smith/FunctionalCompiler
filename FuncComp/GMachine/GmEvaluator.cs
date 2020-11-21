@@ -1,10 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using FuncComp.Helpers;
 
 namespace FuncComp.GMachine
 {
-    public class GmEvaluator
+    public partial class GmEvaluator
     {
         public IEnumerable<GmState> Evaluate(GmState state)
         {
@@ -38,6 +39,9 @@ namespace FuncComp.GMachine
                 GmInstruction.Slide slide => StepSlide(slide, newState),
                 GmInstruction.Alloc alloc => StepAlloc(alloc, newState),
                 GmInstruction.Unwind unwind => StepUnwind(unwind, newState),
+                GmInstruction.Eval eval => StepEval(eval, newState),
+                GmInstruction.Prim prim => StepPrim(prim, newState),
+                GmInstruction.Cond cond => StepCond(cond, newState),
 
                 _ => throw new ArgumentOutOfRangeException(nameof(instruction))
             };
@@ -114,47 +118,33 @@ namespace FuncComp.GMachine
             return state;
         }
 
-        private static GmState StepUnwind(GmInstruction.Unwind _, GmState state)
+        private static GmState StepEval(GmInstruction.Eval _, GmState state)
         {
-            var head = state.Stack.Peek();
-            var headNode = state.Heap[head];
+            int head;
+            (state, head) = state.Pop();
 
-            return headNode switch
+            var newCode = ImmutableQueue<GmInstruction>.Empty.Enqueue(GmInstruction.Unwind.Instance);
+            var newStack = ImmutableStack<int>.Empty.Push(head);
+
+            return state.PushDump(newCode, newStack);
+        }
+
+        private static GmState StepCond(GmInstruction.Cond instruction, GmState state)
+        {
+            int head;
+            (state, head) = state.Pop();
+
+            var node = (GmNode.Number)state.Heap[head];
+
+            var code = node.Value switch
             {
-                GmNode.Number _ => state,
-                GmNode.Application ap => UnwindAp(ap, state),
-                GmNode.Global global => UnwindGlobal(global, state),
-                GmNode.Indirection ind => UnwindInd(ind, state),
+                1 => instruction.TrueCode,
+                0 => instruction.FalseCode,
 
-                _ => throw new ArgumentOutOfRangeException(nameof(headNode))
+                _ => throw new InvalidOperationException("invalid boolean value"),
             };
-        }
 
-        private static GmState UnwindAp(GmNode.Application application, GmState state)
-        {
-            return state.Push(application.Function).EnqueueInstruction(GmInstruction.Unwind.Instance);
-        }
-
-        private static GmState UnwindGlobal(GmNode.Global global, GmState state)
-        {
-            IReadOnlyList<int> args;
-            (state, args) = state.Pop(global.ArgCount + 1);
-
-            state = state.Push(args[global.ArgCount]);
-
-            // args[0] is the Global node
-            for (var i = args.Count - 1; i >= 1; i--)
-            {
-                var apNode = (GmNode.Application) state.Heap[args[i]];
-                state = state.Push(apNode.Argument);
-            }
-
-            return state.WithCode(global.Code);
-        }
-
-        private static GmState UnwindInd(GmNode.Indirection ind, GmState state)
-        {
-            return state.Drop(1).Push(ind.Addr).EnqueueInstruction(GmInstruction.Unwind.Instance);
+            return state.WithCode(code.EnqueueRange(state.Code));
         }
     }
 }

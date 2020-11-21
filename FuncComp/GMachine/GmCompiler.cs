@@ -9,13 +9,32 @@ namespace FuncComp.GMachine
 {
     public class GmCompiler
     {
-        private static readonly ImmutableQueue<GmInstruction> InitialCode = ImmutableQueue<GmInstruction>.Empty.Enqueue(new GmInstruction.PushGlobal(new Name("main"))).Enqueue(GmInstruction.Unwind.Instance);
+        private static readonly ImmutableQueue<GmInstruction> InitialCode = ImmutableQueue<GmInstruction>.Empty.Enqueue(new GmInstruction.PushGlobal(new Name("main"))).Enqueue(GmInstruction.Eval.Instance);
+
+        private static readonly IReadOnlyCollection<(string Name, int Args, IReadOnlyCollection<GmInstruction> Instructions)> CompiledPrimitives = new []
+        {
+            Prim1("negate", GmInstruction.Prim.PrimType.Neg),
+
+            Prim2("+", GmInstruction.Prim.PrimType.Add),
+            Prim2("-", GmInstruction.Prim.PrimType.Sub),
+            Prim2("*", GmInstruction.Prim.PrimType.Mul),
+            Prim2("/", GmInstruction.Prim.PrimType.Div),
+
+            Prim2("==", GmInstruction.Prim.PrimType.Eq),
+            Prim2("~=", GmInstruction.Prim.PrimType.Ne),
+            Prim2("<", GmInstruction.Prim.PrimType.Lt),
+            Prim2("<=", GmInstruction.Prim.PrimType.Le),
+            Prim2(">", GmInstruction.Prim.PrimType.Gt),
+            Prim2(">=", GmInstruction.Prim.PrimType.Ge),
+
+            If(),
+        };
 
         public GmState Compile(Program<Name> program)
         {
             var (heap, globals) = BuildInitialHeap(Prelude.Program.Supercombinators.Concat(program.Supercombinators));
 
-            return new GmState(InitialCode, ImmutableStack<int>.Empty, heap, globals);
+            return new GmState(InitialCode, ImmutableStack<int>.Empty, ImmutableStack<(ImmutableQueue<GmInstruction> Code, ImmutableStack<int> Stack)>.Empty, heap, globals);
         }
 
         private (ImmutableDictionary<int, GmNode> Heap, ImmutableDictionary<Name, int> Globals) BuildInitialHeap(IEnumerable<SupercombinatorDefinition<Name>> supercombinatorDefinitions)
@@ -31,7 +50,13 @@ namespace FuncComp.GMachine
                 globals[def.Name] = addr;
             }
 
-            // TODO primitives
+            foreach (var (name, args, insts) in CompiledPrimitives)
+            {
+                var addr = heap.Count;
+
+                heap[addr] = new GmNode.Global(args, ImmutableQueue<GmInstruction>.Empty.EnqueueRange(insts));
+                globals[new Name(name)] = addr;
+            }
 
             return (heap.ToImmutableDictionary(), globals.ToImmutableDictionary());
         }
@@ -125,6 +150,45 @@ namespace FuncComp.GMachine
         private static ImmutableDictionary<Name, int> ArgOffset(int offset, IReadOnlyDictionary<Name, int> environment)
         {
             return environment.ToImmutableDictionary(x => x.Key, x => x.Value + offset);
+        }
+
+        private static (string, int, IReadOnlyCollection<GmInstruction>) Prim1(string name, GmInstruction.Prim.PrimType type)
+        {
+            return (name, 1, new GmInstruction[]
+            {
+                new GmInstruction.Push(0),
+                GmInstruction.Eval.Instance,
+                new GmInstruction.Prim(type),
+                new GmInstruction.Update(1),
+                new GmInstruction.Pop(1),
+                GmInstruction.Unwind.Instance
+            });
+        }
+        private static (string, int, IReadOnlyCollection<GmInstruction>) Prim2(string name, GmInstruction.Prim.PrimType type)
+        {
+            return (name, 2, new GmInstruction[]
+            {
+                new GmInstruction.Push(1),
+                GmInstruction.Eval.Instance,
+                new GmInstruction.Push(1),
+                GmInstruction.Eval.Instance,
+                new GmInstruction.Prim(type),
+                new GmInstruction.Update(2),
+                new GmInstruction.Pop(2),
+                GmInstruction.Unwind.Instance
+            });
+        }
+        private static (string, int, IReadOnlyCollection<GmInstruction>) If()
+        {
+            return ("if", 3, new GmInstruction[]
+            {
+                new GmInstruction.Push(0),
+                GmInstruction.Eval.Instance,
+                new GmInstruction.Cond(ImmutableQueue<GmInstruction>.Empty.Enqueue(new GmInstruction.Push(1)), ImmutableQueue<GmInstruction>.Empty.Enqueue(new GmInstruction.Push(2))),
+                new GmInstruction.Update(3),
+                new GmInstruction.Pop(3),
+                GmInstruction.Unwind.Instance,
+            });
         }
     }
 }

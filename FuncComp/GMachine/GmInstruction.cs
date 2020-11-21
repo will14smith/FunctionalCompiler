@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Immutable;
 using FuncComp.Language;
 
 namespace FuncComp.GMachine
@@ -115,6 +116,54 @@ namespace FuncComp.GMachine
 
             public override bool Equals(object? obj) => obj is Alloc other && Count == other.Count;
             public override int GetHashCode() => HashCode.Combine(41, Count);
+        }
+
+
+        public class Eval : GmInstruction
+        {
+            public static Eval Instance { get; } = new Eval();
+            private Eval() { }
+
+            public override bool Equals(object? obj) => obj is Eval;
+            public override int GetHashCode() => 43;
+        }
+
+        public class Prim : GmInstruction
+        {
+            public Prim(PrimType type)
+            {
+                Type = type;
+            }
+
+            public enum PrimType
+            {
+                Add, Sub,
+                Mul, Div,
+                Neg,
+                Eq, Ne,
+                Lt, Le,
+                Gt, Ge
+            }
+
+            public PrimType Type { get; }
+
+            public override bool Equals(object? obj) => obj is Prim other && Type == other.Type;
+            public override int GetHashCode() => HashCode.Combine(47, Type);
+        }
+
+        public class Cond : GmInstruction
+        {
+            public Cond(ImmutableQueue<GmInstruction> trueCode, ImmutableQueue<GmInstruction> falseCode)
+            {
+                TrueCode = trueCode;
+                FalseCode = falseCode;
+            }
+
+            public ImmutableQueue<GmInstruction> TrueCode { get; }
+            public ImmutableQueue<GmInstruction> FalseCode { get; }
+
+            public override bool Equals(object? obj) => obj is Cond other && TrueCode == other.TrueCode && FalseCode == other.FalseCode;
+            public override int GetHashCode() => HashCode.Combine(51, TrueCode, FalseCode);
         }
     }
 }

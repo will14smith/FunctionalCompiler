@@ -9,16 +9,18 @@ namespace FuncComp.GMachine
 {
     public class GmState
     {
-        public GmState(ImmutableQueue<GmInstruction> code, ImmutableStack<int> stack, ImmutableDictionary<int, GmNode> heap, ImmutableDictionary<Name, int> globals)
+        public GmState(ImmutableQueue<GmInstruction> code, ImmutableStack<int> stack, ImmutableStack<(ImmutableQueue<GmInstruction> Code, ImmutableStack<int> Stack)> dump, ImmutableDictionary<int, GmNode> heap, ImmutableDictionary<Name, int> globals)
         {
             Code = code;
             Stack = stack;
+            Dump = dump;
             Heap = heap;
             Globals = globals;
         }
 
         public ImmutableQueue<GmInstruction> Code { get; }
         public ImmutableStack<int> Stack { get; }
+        public ImmutableStack<(ImmutableQueue<GmInstruction> Code, ImmutableStack<int> Stack)> Dump { get; }
         public ImmutableDictionary<int, GmNode> Heap { get; }
         public ImmutableDictionary<Name, int> Globals { get; }
 
@@ -27,7 +29,7 @@ namespace FuncComp.GMachine
         public (GmInstruction, GmState) DequeueInstruction()
         {
             var newCode = Code.Dequeue(out var instruction);
-            var newState = new GmState(newCode, Stack, Heap, Globals);
+            var newState = new GmState(newCode, Stack, Dump, Heap, Globals);
 
             return (instruction, newState);
         }
@@ -37,13 +39,13 @@ namespace FuncComp.GMachine
         {
             var newCode = Code.Enqueue(instruction);
 
-            return new GmState(newCode, Stack, Heap, Globals);
+            return new GmState(newCode, Stack, Dump, Heap, Globals);
         }
 
         [Pure]
         public GmState WithCode(ImmutableQueue<GmInstruction> code)
         {
-            return new GmState(code, Stack, Heap, Globals);
+            return new GmState(code, Stack, Dump, Heap, Globals);
         }
 
         // stack
@@ -52,14 +54,14 @@ namespace FuncComp.GMachine
         {
             var newStack = Stack.Push(value);
 
-            return new GmState(Code, newStack, Heap, Globals);
+            return new GmState(Code, newStack, Dump, Heap, Globals);
         }
 
         [Pure]
         public (GmState State, int Item) Pop()
         {
             var newStack = Stack.Pop(out var value);
-            var newState = new GmState(Code, newStack, Heap, Globals);
+            var newState = new GmState(Code, newStack, Dump, Heap, Globals);
 
             return (newState, value);
         }
@@ -67,7 +69,7 @@ namespace FuncComp.GMachine
         public (GmState State, IReadOnlyList<int> Items) Pop(in int count)
         {
             var (newStack, items) = Stack.PopMultiple(count);
-            var newState = new GmState(Code, newStack, Heap, Globals);
+            var newState = new GmState(Code, newStack, Dump, Heap, Globals);
 
             return (newState, items);
         }
@@ -82,7 +84,24 @@ namespace FuncComp.GMachine
                 newStack = newStack.Pop();
             }
 
-            return new GmState(Code, newStack, Heap, Globals);
+            return new GmState(Code, newStack, Dump, Heap, Globals);
+        }
+
+        // dump
+        [Pure]
+        public GmState PushDump(ImmutableQueue<GmInstruction> newCode, ImmutableStack<int> newStack)
+        {
+            var newDump = Dump.Push((Code, Stack));
+
+            return new GmState(newCode, newStack, newDump, Heap, Globals);
+        }
+
+        [Pure]
+        public GmState PopDump()
+        {
+            var newDump = Dump.Pop(out var newCodeStack);
+
+            return new GmState(newCodeStack.Code, newCodeStack.Stack, newDump, Heap, Globals);
         }
 
         // heap
@@ -91,7 +110,7 @@ namespace FuncComp.GMachine
         {
             var newHeap = Heap.SetItem(addr, node);
 
-            return new GmState(Code, Stack, newHeap, Globals);
+            return new GmState(Code, Stack, Dump, newHeap, Globals);
         }
 
         [Pure]
